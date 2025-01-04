@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mystic Tarot Reader</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
+        
+        .mystic-font {
+            font-family: 'Cinzel', serif;
+        }
+        
+        .card-container {
+            perspective: 1000px;
+        }
+        
+        .card {
+            transition: transform 0.8s;
+            transform-style: preserve-3d;
+        }
+        
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+        
+        .card-back, .card-front {
+            backface-visibility: hidden;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .card-front {
+            transform: rotateY(180deg);
+        }
+        
+        .bg-mystic {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+        
+        .card-shadow {
+            box-shadow: 0 0 20px rgba(138, 43, 226, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-mystic min-h-screen text-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-4xl md:text-6xl text-center mystic-font mb-8 text-purple-300">
+            Mystic Tarot Reader
+        </h1>
+        
+        <div class="max-w-4xl mx-auto">
+            <div class="text-center mb-8">
+                <button id="drawButton" 
+                        class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg mystic-font text-xl transition-colors duration-200">
+                    Draw a Card
+                </button>
+            </div>
+            
+            <div id="readingContainer" class="hidden">
+                <div class="card-container w-64 h-96 mx-auto mb-8">
+                    <div class="card relative w-full h-full">
+                        <div class="card-back bg-purple-900 rounded-lg border-2 border-purple-300 w-full h-full flex items-center justify-center card-shadow">
+                            <div class="text-purple-300 text-2xl mystic-font">✧ Tarot ✧</div>
+                        </div>
+                        <div class="card-front">
+                            <img id="cardImage" class="rounded-lg w-full h-full object-cover card-shadow" src="" alt="Tarot Card">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-purple-900 bg-opacity-50 rounded-lg p-6 card-shadow">
+                    <h2 id="cardName" class="text-3xl text-center mystic-font text-purple-300 mb-4"></h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div class="text-center">
+                            <span class="block text-purple-300 mystic-font">Position</span>
+                            <span id="cardPosition" class="text-lg"></span>
+                        </div>
+                        <div class="text-center">
+                            <span class="block text-purple-300 mystic-font">Arcana</span>
+                            <span id="cardArcana" class="text-lg"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl text-purple-300 mystic-font mb-2">Description</h3>
+                        <p id="cardDescription" class="text-gray-100 leading-relaxed"></p>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-xl text-purple-300 mystic-font mb-2">Symbols</h3>
+                        <p id="cardSymbols" class="text-gray-100"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tarot card data
+        const tarotData = {
+            "cards": [
+                {"name": "The Fool", "arcana": "Major", "suit": "none", "description": "We are often ignorant of the path ahead. Innocence can lead us into uncertainty. Tread lightly.", "rank": "0", "symbols": "Youth. Innocence. Naivety."},
+                {"name": "The Magician", "arcana": "Major", "suit": "none", "description": "Magick begins with the singular act of creation. To find our way, we often must look inward for the spark.", "rank": "1", "symbols": "Creativity. Infinity. Beginnings."},
+                {"name": "The High Priestess", "arcana": "Major", "suit": "none", "description": "Following our intuition is often the best course of action. Our unconscious often sees things our eyes miss, or choose not to see.", "rank": "2", "symbols": "The Moon. Intuition. Mystery."},
+                {"name": "The Empress", "arcana": "Major", "suit": "none", "description": "This card indicates fertility and love. It is a good time to look for comfort in one's home.", "rank": "3", "symbols": "Venus. Beauty. Harmony."},
+                {"name": "The Emperor", "arcana": "Major", "suit": "none", "description": "A sign of authority and domination, or administrative powers. The father-like Emperor seeks power at all cost.", "rank": "4", "symbols": "Aggression. Power. Maturity."},
+                {"name": "The Hierophant", "arcana": "Major", "suit": "none", "description": "Traditional values dominate under the influence of Taurus. Religious ceremonies are implied.", "rank": "5", "symbols": "Tradition. Gatherings. Endurance."},
+                {"name": "The Lovers", "arcana": "Major", "suit": "none", "description": "A strong relationship is implied, one that values communication and charity. Happiness follows.", "rank": "6", "symbols": "Choice. Love. Intensity."},
+                // ...rest of your JSON data from the file...
+            ]
+        };
+
+        class TarotCard {
+            constructor(cardData) {
+                this.name = cardData.name;
+                this.arcana = cardData.arcana;
+                this.suit = cardData.suit;
+                this.description = cardData.description;
+                this.rank = cardData.rank;
+                this.symbols = cardData.symbols;
+            }
+
+            getReading() {
+                const position = Math.random() < 0.5 ? 'upright' : 'reversed';
+                return {
+                    position,
+                    name: this.name,
+                    arcana: this.arcana,
+                    suit: this.suit,
+                    description: this.description,
+                    symbols: this.symbols,
+                    rank: this.rank,
+                    imagePath: `images/${this.name}.jpg`
+                };
+            }
+        }
+
+        function drawCard() {
+            // Select random card
+            const randomCard = tarotData.cards[Math.floor(Math.random() * tarotData.cards.length)];
+            const card = new TarotCard(randomCard);
+            return card.getReading();
+        }
+
+        // UI Elements
+        const drawButton = document.getElementById('drawButton');
+        const readingContainer = document.getElementById('readingContainer');
+        const cardElement = document.querySelector('.card');
+        const cardImage = document.getElementById('cardImage');
+        const cardName = document.getElementById('cardName');
+        const cardPosition = document.getElementById('cardPosition');
+        const cardArcana = document.getElementById('cardArcana');
+        const cardDescription = document.getElementById('cardDescription');
+        const cardSymbols = document.getElementById('cardSymbols');
+
+        // Event Handlers
+        drawButton.addEventListener('click', () => {
+            // Reset card flip
+            cardElement.classList.remove('flipped');
+            
+            // Get new reading
+            const reading = drawCard();
+            
+            // Show reading container
+            readingContainer.classList.remove('hidden');
+            
+            // Update card information
+            cardName.textContent = reading.name;
+            cardPosition.textContent = reading.position;
+            cardArcana.textContent = reading.arcana;
+            cardDescription.textContent = reading.description;
+            cardSymbols.textContent = reading.symbols;
+            
+            // Load new image and flip card when ready
+            cardImage.src = reading.imagePath;
+            cardImage.onload = () => {
+                setTimeout(() => {
+                    cardElement.classList.add('flipped');
+                }, 100);
+            };
+        });
+
+        // Initialize card drawing
+        window.onload = () => {
+            console.log(`Loaded ${tarotData.cards.length} cards`);
+        };
+    </script>
+</body>
+</html>
